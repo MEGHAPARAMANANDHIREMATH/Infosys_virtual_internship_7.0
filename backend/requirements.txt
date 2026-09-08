@@ -1,0 +1,12 @@
+Django>=5.1,<7
+djangorestframework>=3.15
+django-cors-headers>=4.6
+python-dotenv>=1.0
+pymysql>=1.1
+pypdf>=5.1
+python-docx>=1.1
+pandas>=2.2
+chromadb>=0.6.0
+sentence-transformers>=3.3.0
+openai>=1.59.0
+httpx>=0.28.0

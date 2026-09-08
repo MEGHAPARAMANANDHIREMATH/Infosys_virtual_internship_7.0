@@ -1,0 +1,35 @@
+[
+  {
+    "document_id": "doc-f76542da",
+    "project_id": "project-dd4de503",
+    "filename": "project_proposal.txt",
+    "file_type": "txt",
+    "file_path": "data\\uploads\\doc-f76542da_project_proposal.txt",
+    "upload_timestamp": "2026-09-03T13:45:05.003163",
+    "status": "indexed",
+    "chunk_count": 3,
+    "error_message": null
+  },
+  {
+    "document_id": "doc-428af7b7",
+    "project_id": "project-dd4de503",
+    "filename": "task_list.csv",
+    "file_type": "csv",
+    "file_path": "data\\uploads\\doc-428af7b7_task_list.csv",
+    "upload_timestamp": "2026-09-03T13:45:46.826148",
+    "status": "indexed",
+    "chunk_count": 2,
+    "error_message": null
+  },
+  {
+    "document_id": "doc-0cf94fb1",
+    "project_id": "project-dd4de503",
+    "filename": "meeting_notes.txt",
+    "file_type": "txt",
+    "file_path": "data\\uploads\\doc-0cf94fb1_meeting_notes.txt",
+    "upload_timestamp": "2026-09-03T13:45:48.964459",
+    "status": "indexed",
+    "chunk_count": 2,
+    "error_message": null
+  }
+]
