@@ -14,14 +14,6 @@ from rag.vector_store import get_vector_store
 
 
 class UploadApiTests(PipelineTestCase):
-    def _upload(self, project_id, filename, content, content_type):
-        uploaded = SimpleUploadedFile(filename, content, content_type=content_type)
-        return self.client.post(
-            f"/api/projects/{project_id}/documents/",
-            {"file": uploaded},
-            format="multipart",
-        )
-
     def test_pdf_accepted(self):
         project = self.create_project("PDF Project")
         pdf_path = self.media_root / "sample.pdf"
@@ -69,7 +61,7 @@ class UploadApiTests(PipelineTestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(
             response.data["error"],
-            "Unsupported file format. Supported formats: PDF, DOCX, CSV, TXT.",
+            "Unsupported file format. Supported formats: PDF, DOCX, TXT, XLSX, CSV.",
         )
 
     def test_file_too_large_rejected(self):
@@ -106,14 +98,26 @@ class ParsingTests(PipelineTestCase):
         path.write_text("name,role\nAda,Lead\n", encoding="utf-8")
         segments = parse_file(path, "csv")
         self.assertTrue(segments)
-        self.assertIn("Ada", segments[0].text)
-        self.assertEqual(segments[0].extra.get("row_number"), 1)
+        combined = "\n".join(segment.text for segment in segments)
+        self.assertIn("Ada", combined)
+        labeled = next(segment for segment in segments if segment.extra.get("row_number") == 1)
+        self.assertIn("Ada", labeled.text)
 
-    def test_txt_extraction(self):
-        path = self.media_root / "plain.txt"
-        path.write_text("Readable plain text content", encoding="utf-8")
-        segments = parse_file(path, "txt")
-        self.assertEqual(segments[0].text.strip(), "Readable plain text content")
+    def test_xlsx_extraction(self):
+        from openpyxl import Workbook
+
+        path = self.media_root / "sheet.xlsx"
+        workbook = Workbook()
+        sheet = workbook.active
+        sheet.title = "Tasks"
+        sheet.append(["Task", "Owner", "Status"])
+        sheet.append(["Build login", "Ada", "Delayed"])
+        workbook.save(path)
+        segments = parse_file(path, "xlsx")
+        combined = "\n".join(segment.text for segment in segments)
+        self.assertIn("Build login", combined)
+        self.assertIn("Ada", combined)
+        self.assertIn("Task | Owner | Status", combined)
 
 
 class ChunkingTests(PipelineTestCase):
@@ -212,6 +216,46 @@ class VectorStoreAndSearchTests(PipelineTestCase):
             self.assertNotIn("ProjectBSecretToken", item["content"])
             self.assertEqual(item["document_id"], Document.objects.get(file_name="alpha.txt").id)
 
+    def test_empty_file_rejected(self):
+        project = self.create_project("Empty bytes")
+        response = self._upload(project["id"], "empty.txt", b"", "text/plain")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data["error"], "The uploaded file is empty.")
+
+    def test_duplicate_upload_reused(self):
+        project = self.create_project("Dupes")
+        payload = b"Unique duplicate token for campus reporting."
+        first = self._upload(project["id"], "notes.txt", payload, "text/plain")
+        self.assertEqual(first.status_code, 201, first.data)
+        second = self._upload(project["id"], "notes.txt", payload, "text/plain")
+        self.assertEqual(second.status_code, 200, second.data)
+        self.assertTrue(second.data.get("duplicate"))
+        self.assertEqual(second.data["id"], first.data["id"])
+
+    def test_xlsx_accepted(self):
+        from io import BytesIO
+
+        from openpyxl import Workbook
+
+        project = self.create_project("XLSX Project")
+        workbook = Workbook()
+        sheet = workbook.active
+        sheet.append(["Task", "Owner"])
+        sheet.append(["Build login", "Ada"])
+        buffer = BytesIO()
+        workbook.save(buffer)
+        response = self._upload(
+            project["id"],
+            "tasks.xlsx",
+            buffer.getvalue(),
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertEqual(response.data["processing_status"], ProcessingStatus.PROCESSED)
+        self.assertEqual(response.data["file_type"], "xlsx")
+
+
+class WhitespaceDocumentTests(PipelineTestCase):
     def test_empty_document_fails_clearly(self):
         project = self.create_project("Empty")
         uploaded = SimpleUploadedFile("empty.txt", b"   \n\n  ", content_type="text/plain")

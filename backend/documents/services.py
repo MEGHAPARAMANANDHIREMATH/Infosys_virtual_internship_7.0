@@ -1,3 +1,4 @@
+import hashlib
 import logging
 from pathlib import Path
 
@@ -7,6 +8,15 @@ from documents.models import Document
 from rag.vector_store import get_vector_store
 
 logger = logging.getLogger("documents")
+
+
+def hash_uploaded_file(uploaded_file) -> str:
+    hasher = hashlib.sha256()
+    for chunk in uploaded_file.chunks():
+        hasher.update(chunk)
+    if hasattr(uploaded_file, "seek"):
+        uploaded_file.seek(0)
+    return hasher.hexdigest()
 
 
 def store_uploaded_file(project_id: int, uploaded_file) -> Path:

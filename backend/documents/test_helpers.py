@@ -87,6 +87,8 @@ class PipelineTestCase(APITestCase):
             CHROMA_COLLECTION_NAME=_next_collection_name(),
             ENFORCE_PROJECT_ACCESS=False,
             EMBEDDING_PROVIDER="local",
+            LLM_PROVIDER="grounded",
+            OPENAI_API_KEY="",
         )
         self._settings.enable()
         reset_vector_store()
@@ -97,6 +99,16 @@ class PipelineTestCase(APITestCase):
         self._settings.disable()
         self._temp_dir.cleanup()
         super().tearDown()
+
+    def _upload(self, project_id, filename, content, content_type):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        uploaded = SimpleUploadedFile(filename, content, content_type=content_type)
+        return self.client.post(
+            f"/api/projects/{project_id}/documents/",
+            {"file": uploaded},
+            format="multipart",
+        )
 
     def create_project(self, name="Alpha", **extra):
         payload = {

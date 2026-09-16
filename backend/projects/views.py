@@ -9,7 +9,7 @@ from projects.serializers import ProjectSerializer
 
 class HealthView(APIView):
     def get(self, request):
-        return Response({"status": "ok", "milestone": 1})
+        return Response({"status": "ok", "milestone": 2})
 
 
 class ProjectListCreateView(APIView):

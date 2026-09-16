@@ -23,6 +23,7 @@ class Document(models.Model):
         default=ProcessingStatus.UPLOADED,
     )
     error_message = models.TextField(blank=True, default="")
+    file_hash = models.CharField(max_length=64, blank=True, default="", db_index=True)
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "projects",
     "documents",
+    "agents",
 ]
 
 MIDDLEWARE = [
@@ -116,7 +117,9 @@ ENFORCE_PROJECT_ACCESS = os.getenv("ENFORCE_PROJECT_ACCESS", "false").lower() in
 CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "800"))
 CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "100"))
 MAX_FILE_SIZE_MB = int(os.getenv("MAX_FILE_SIZE_MB", "10"))
-ALLOWED_EXTENSIONS = {"pdf", "docx", "csv", "txt"}
+ALLOWED_EXTENSIONS = {"pdf", "docx", "csv", "txt", "xlsx"}
+OPENAI_CHAT_MODEL = os.getenv("OPENAI_CHAT_MODEL", "gpt-4o-mini")
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "auto").strip().lower()
 
 EMBEDDING_PROVIDER = os.getenv("EMBEDDING_PROVIDER", "local").strip().lower()
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
@@ -147,6 +150,7 @@ LOGGING = {
         "rag": {"handlers": ["console"], "level": "INFO", "propagate": False},
         "documents": {"handlers": ["console"], "level": "INFO", "propagate": False},
         "projects": {"handlers": ["console"], "level": "INFO", "propagate": False},
+        "agents": {"handlers": ["console"], "level": "INFO", "propagate": False},
     },
 }
 

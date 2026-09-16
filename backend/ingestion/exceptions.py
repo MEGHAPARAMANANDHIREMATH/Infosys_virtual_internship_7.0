@@ -14,6 +14,10 @@ class EmptyDocumentError(DocumentProcessingError):
     pass
 
 
+class EmptyFileError(DocumentProcessingError):
+    pass
+
+
 class ParsingError(DocumentProcessingError):
     pass
 

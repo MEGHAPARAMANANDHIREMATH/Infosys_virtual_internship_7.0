@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { getErrorMessage, uploadDocument } from '../services/api';
 
-const ACCEPTED = '.pdf,.docx,.csv,.txt';
+const ACCEPTED = '.pdf,.docx,.csv,.txt,.xlsx';
 
 export default function DocumentUpload({ projectId, onUploaded }) {
   const [dragOver, setDragOver] = useState(false);
@@ -19,7 +19,9 @@ export default function DocumentUpload({ projectId, onUploaded }) {
     try {
       const res = await uploadDocument(projectId, file);
       const status = res.data.processing_status;
-      if (status === 'PROCESSED') {
+      if (res.data.duplicate) {
+        setSuccess(`${file.name} was already uploaded. Reusing the existing processed file.`);
+      } else if (status === 'PROCESSED') {
         setSuccess(`${file.name} processed successfully.`);
       } else if (status === 'FAILED') {
         setError(res.data.error_message || 'Document processing failed. Please retry.');
@@ -42,7 +44,7 @@ export default function DocumentUpload({ projectId, onUploaded }) {
   return (
     <section className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
       <h2 className="text-lg font-semibold text-slate-800 mb-2">Document Upload</h2>
-      <p className="text-sm text-slate-500 mb-4">Supported formats: PDF, DOCX, CSV, TXT</p>
+      <p className="text-sm text-slate-500 mb-4">Supported formats: PDF, DOCX, TXT, XLSX, CSV</p>
       <label
         onDragOver={(e) => {
           e.preventDefault();
@@ -61,7 +63,7 @@ export default function DocumentUpload({ projectId, onUploaded }) {
         <p className="text-slate-700 font-medium">
           {uploading ? `Uploading ${currentFile}...` : 'Drag and drop a file, or click to select'}
         </p>
-        <p className="text-xs text-slate-500 mt-2">PDF, DOCX, CSV, or TXT</p>
+        <p className="text-xs text-slate-500 mt-2">PDF, DOCX, TXT, XLSX, or CSV</p>
         <input
           type="file"
           accept={ACCEPTED}

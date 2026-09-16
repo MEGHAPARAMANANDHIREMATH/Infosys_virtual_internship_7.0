@@ -10,15 +10,16 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from config.access import get_accessible_project
-from documents.models import Document
+from documents.models import Document, ProcessingStatus
 from documents.serializers import DocumentSerializer
-from documents.services import delete_document_artifacts, store_uploaded_file
-from ingestion.exceptions import FileTooLargeError, UnsupportedFileError
+from documents.services import delete_document_artifacts, hash_uploaded_file, store_uploaded_file
+from ingestion.exceptions import EmptyDocumentError, EmptyFileError, FileTooLargeError, UnsupportedFileError
+from ingestion.parsers import UNSUPPORTED_FORMATS_MESSAGE
 from ingestion.processor import process_document
 
 logger = logging.getLogger("documents")
 
-UNSUPPORTED_MESSAGE = "Unsupported file format. Supported formats: PDF, DOCX, CSV, TXT."
+UNSUPPORTED_MESSAGE = UNSUPPORTED_FORMATS_MESSAGE
 
 
 def _extension_of(filename: str) -> str:
@@ -52,19 +53,57 @@ class ProjectDocumentListCreateView(APIView):
             },
             "csv": {"text/csv", "application/vnd.ms-excel", "application/octet-stream", "text/plain"},
             "txt": {"text/plain", "application/octet-stream"},
+            "xlsx": {
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "application/octet-stream",
+            },
         }
         if extension not in settings.ALLOWED_EXTENSIONS:
             raise UnsupportedFileError(UNSUPPORTED_MESSAGE)
         if content_type and content_type not in allowed_types[extension] and content_type != "application/octet-stream":
             # Some browsers send generic types; extension remains the source of truth.
-            if not content_type.startswith("text/") and "pdf" not in content_type and "word" not in content_type:
+            if (
+                not content_type.startswith("text/")
+                and "pdf" not in content_type
+                and "word" not in content_type
+                and "spreadsheet" not in content_type
+                and "excel" not in content_type
+            ):
                 raise UnsupportedFileError(UNSUPPORTED_MESSAGE)
+
+        if uploaded.size == 0:
+            raise EmptyFileError("The uploaded file is empty.")
 
         max_bytes = settings.MAX_FILE_SIZE_MB * 1024 * 1024
         if uploaded.size > max_bytes:
             raise FileTooLargeError(
                 f"File is too large. Maximum size is {settings.MAX_FILE_SIZE_MB} MB."
             )
+
+        file_hash = hash_uploaded_file(uploaded)
+        existing = (
+            Document.objects.filter(
+                project=project,
+                file_hash=file_hash,
+                processing_status=ProcessingStatus.PROCESSED,
+            )
+            .order_by("-uploaded_at")
+            .first()
+        )
+        if existing:
+            logger.info(
+                "Duplicate upload project_id=%s file=%s hash=%s existing_id=%s",
+                project.id,
+                uploaded.name,
+                file_hash,
+                existing.id,
+            )
+            payload = DocumentSerializer(existing).data
+            payload["duplicate"] = True
+            payload["message"] = (
+                "This document was already uploaded. Reusing the existing processed file."
+            )
+            return Response(payload, status=status.HTTP_200_OK)
 
         logger.info(
             "Document upload project_id=%s file=%s size=%s",
@@ -79,10 +118,13 @@ class ProjectDocumentListCreateView(APIView):
             file_type=extension,
             file_path=str(stored_path),
             processing_status="UPLOADED",
+            file_hash=file_hash,
         )
         process_document(document)
         document.refresh_from_db()
-        return Response(DocumentSerializer(document).data, status=status.HTTP_201_CREATED)
+        payload = DocumentSerializer(document).data
+        payload["duplicate"] = False
+        return Response(payload, status=status.HTTP_201_CREATED)
 
 
 class DocumentDeleteView(APIView):

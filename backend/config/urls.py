@@ -1,5 +1,6 @@
 from django.urls import path
 
+from agents.views import ProjectIntelligenceView
 from documents.views import DocumentDeleteView, ProjectDocumentListCreateView
 from projects.views import HealthView, ProjectDetailView, ProjectListCreateView
 from rag.views import ProjectSearchView
@@ -17,6 +18,11 @@ urlpatterns = [
         "api/projects/<int:project_id>/search/",
         ProjectSearchView.as_view(),
         name="project-search",
+    ),
+    path(
+        "api/projects/<int:project_id>/intelligence/",
+        ProjectIntelligenceView.as_view(),
+        name="project-intelligence",
     ),
     path("api/documents/<int:pk>/", DocumentDeleteView.as_view(), name="document-delete"),
 ]

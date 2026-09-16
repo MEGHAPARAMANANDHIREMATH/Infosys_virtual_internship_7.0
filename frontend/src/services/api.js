@@ -27,7 +27,7 @@ export const getDocuments = (projectId) =>
 export const uploadDocument = (projectId, file) => {
   const formData = new FormData();
   formData.append('file', file);
-  return api.post(`/api/projects/${projectId}/documents/`, formData);
+  return api.post(`/api/projects/${projectId}/documents/`, formData, { timeout: 120000 });
 };
 
 export const deleteDocument = (documentId) =>
@@ -35,5 +35,21 @@ export const deleteDocument = (documentId) =>
 
 export const searchProject = (projectId, query, topK = 5) =>
   api.post(`/api/projects/${projectId}/search/`, { query, top_k: topK });
+
+export const analyzeDocument = (projectId, { documentId, agents = 'all', file } = {}) => {
+  if (file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('agents', agents);
+    return api.post(`/api/projects/${projectId}/intelligence/`, formData, { timeout: 120000 });
+  }
+  return api.post(`/api/projects/${projectId}/intelligence/`, {
+    document_id: documentId,
+    agents,
+  }, { timeout: 120000 });
+};
+
+export const getLatestAnalysis = (projectId, documentId) =>
+  api.get(`/api/projects/${projectId}/intelligence/`, { params: { document_id: documentId } });
 
 export default api;

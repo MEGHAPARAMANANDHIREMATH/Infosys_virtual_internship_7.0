@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import AgentIntelligence from '../components/AgentIntelligence';
 import DocumentUpload from '../components/DocumentUpload';
 import DocumentList from '../components/DocumentList';
 import SemanticSearch from '../components/SemanticSearch';
@@ -44,6 +45,11 @@ export default function ProjectWorkspacePage({ project, onBack, onProjectUpdated
 
       <DocumentUpload projectId={project.id} onUploaded={refresh} />
       <DocumentList documents={documents} onChanged={refresh} />
+      <AgentIntelligence
+        projectId={project.id}
+        documents={documents}
+        onDocumentsChanged={refresh}
+      />
       <SemanticSearch projectId={project.id} />
     </div>
   );

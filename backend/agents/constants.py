@@ -1,0 +1,11 @@
+NOT_SPECIFIED = "Not specified"
+
+AGENT_SCOPE = "scope"
+AGENT_RISK = "risk"
+AGENT_BLOCKERS = "blockers"
+AGENT_ALL = "all"
+
+VALID_AGENTS = {AGENT_SCOPE, AGENT_RISK, AGENT_BLOCKERS, AGENT_ALL}
+
+SEVERITIES = ("Low", "Medium", "High", "Critical")
+FORECAST_STATUSES = ("ON TRACK", "AT RISK", "DELAYED")

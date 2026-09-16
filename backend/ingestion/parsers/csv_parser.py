@@ -12,6 +12,24 @@ class CsvParser:
             frame = pd.read_csv(file_path)
             segments: list[ParsedSegment] = []
             columns = [str(col) for col in frame.columns]
+            if columns:
+                header_lines = [" | ".join(columns)]
+                for _, row in frame.iterrows():
+                    values = []
+                    for column in columns:
+                        value = row[column]
+                        if pd.isna(value):
+                            values.append("")
+                        else:
+                            values.append(str(value).strip())
+                    if any(values):
+                        header_lines.append(" | ".join(values))
+                segments.append(
+                    ParsedSegment(
+                        text="\n".join(header_lines),
+                        extra={"source_type": "csv_table", "columns": columns},
+                    )
+                )
             for row_number, row in frame.iterrows():
                 parts = []
                 for column in columns:
