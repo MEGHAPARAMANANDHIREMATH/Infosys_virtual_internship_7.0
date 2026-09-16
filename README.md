@@ -2,7 +2,28 @@
 
 Milestone 1 builds the **document ingestion and RAG foundation**: upload project files, extract and clean text, chunk it, generate embeddings, store them in ChromaDB, and run project-scoped semantic search.
 
-Milestone 2 adds **document intelligence agents** on that foundation: scope and deliverable extraction, risk detection with a delivery forecast, and blocker / action-item identification. Health scoring and a conversational assistant remain later work.
+Milestone 2 extends this foundation with **project document intelligence and risk management** while preserving all Milestone 1 capabilities. The application continues to support document upload, processing, and semantic search, and adds a new intelligence layer for scope extraction, risk detection, delivery forecasting, and blocker/action tracking.
+
+## Milestone 2 overview
+
+Milestone 2 adds three document-analysis agents to the existing project workflow:
+
+- Scope & Deliverable Extraction Agent: extracts the project name, objective, scope, major deliverables, tasks, milestones, dates, owners, and dependencies from uploaded project documents.
+- Risk Detection & Delivery Forecasting Agent: identifies schedule risks, delayed tasks, dependency gaps, missing resources, unrealistic deadlines, and delivery challenges, then produces a forecast with status, reason, key risks, impacted milestones, and recommended actions.
+- Blocker & Action Item Identification Agent: extracts blockers, pending decisions, open issues, and action items with evidence, owners, due dates, priorities, and status.
+
+The Milestone 2 dashboard is added alongside the existing Milestone 1 project workspace rather than replacing it. This keeps the original project ingestion and retrieval features intact while adding structured intelligence on top of the same uploaded document data.
+
+## Milestone 1 vs Milestone 2
+
+| Milestone | Focus | Included functionality |
+| --- | --- | --- |
+| Milestone 1 | Document ingestion and retrieval | Upload, validation, text extraction, chunking, embeddings, ChromaDB indexing, and semantic search |
+| Milestone 2 | Project intelligence and risk management | Scope extraction, deliverable analysis, risk detection, delivery forecasting, blocker/action identification, and structured dashboard output |
+
+Milestone 1 remains the base layer, and Milestone 2 builds directly on top of it without removing or altering the original workflow.
+
+Sample validation inputs are in `sample_data/milestone2/`, and the validation summary is captured in `VALIDATION_REPORT.md`.
 
 ## Architecture
 
@@ -16,8 +37,7 @@ Django REST API
       ├── MySQL (or SQLite in development)
       ├── File storage (MEDIA_ROOT)
       └── RAG service
-            ├── File parsers (PDF, DOCX, CSV, TXT, XLSX)
-            ├── Intelligence agents (scope, risk/forecast, blockers)
+            ├── File parsers (PDF, DOCX, CSV, TXT)
             ├── Text cleaner
             ├── Chunker
             ├── Embedding service
@@ -124,21 +144,7 @@ Vite proxies `/api` to `http://localhost:8000`.
 3. Drag and drop or select a PDF, DOCX, CSV, or TXT file.
 4. Wait for processing. Status should become `PROCESSED` (or `FAILED` with a clear error).
 
-Sample files are in `sample_data/` (Milestone 1: `project_proposal.txt`, `meeting_notes.txt`, `task_list.csv`) and `sample_data/milestone2/` after generating the Milestone 2 set.
-
-## How to run Milestone 2 document intelligence
-
-1. Open a project and upload a document, or pick a processed file under **Document Intelligence**.
-2. Choose **Scope & Deliverables**, **Risk & Delivery Forecast**, **Blockers & Action Items**, or **Run All Agents**.
-3. Review the tabbed results dashboard. Missing fields show as `Not specified`.
-
-Optional OpenAI chat enrichment uses `OPENAI_API_KEY` with `LLM_PROVIDER=auto` or `openai`. Leave the key empty, or set `LLM_PROVIDER=grounded`, to use document-grounded extraction only (no invented answers).
-
-```bash
-cd backend
-venv\Scripts\activate
-python ..\sample_data\generate_milestone2_samples.py
-```
+Sample files are in `sample_data/` (`project_proposal.txt`, `meeting_notes.txt`, `task_list.csv`).
 
 ## How to perform semantic search
 
@@ -163,9 +169,7 @@ See `.env.example` (repo root) and `backend/.env.example`.
 | `CHUNK_SIZE` / `CHUNK_OVERLAP` | Chunking |
 | `EMBEDDING_PROVIDER` | `local` or `openai` |
 | `EMBEDDING_MODEL` | Local sentence-transformers model |
-| `OPENAI_API_KEY` | OpenAI embeddings and optional Milestone 2 chat analysis |
-| `LLM_PROVIDER` | `auto` (OpenAI if a key is set), `openai`, or `grounded` |
-| `OPENAI_CHAT_MODEL` | Chat model for optional agent enrichment |
+| `OPENAI_API_KEY` | Only if using OpenAI embeddings |
 | `CHROMA_PERSIST_DIR` | Vector store path |
 | `ENFORCE_PROJECT_ACCESS` | If `true`, `X-User-Id` must match `created_by` |
 | `CORS_ORIGINS` | Allowed frontend origins |
@@ -180,7 +184,6 @@ See `.env.example` (repo root) and `backend/.env.example`.
 | GET, POST | `/api/projects/{id}/documents/` |
 | DELETE | `/api/documents/{id}/` |
 | POST | `/api/projects/{id}/search/` |
-| GET, POST | `/api/projects/{id}/intelligence/` |
 
 Search body:
 
@@ -196,7 +199,7 @@ venv\Scripts\activate
 python manage.py test
 ```
 
-Coverage includes project CRUD, PDF/DOCX/CSV/TXT/XLSX parsers, chunking, ChromaDB metadata, semantic search, **project isolation**, and Milestone 2 agent extraction.
+Coverage includes project CRUD, all four file types, parsers, chunking, ChromaDB metadata, semantic search, and **project isolation** (Project A vs Project B).
 
 ## Troubleshooting
 
@@ -204,7 +207,7 @@ Coverage includes project CRUD, PDF/DOCX/CSV/TXT/XLSX parsers, chunking, ChromaD
 |-------|-------------|
 | Backend disconnected in the UI | Start Django on port 8000; confirm `/api/health/` |
 | `No readable text was found` | File may be scanned/image-only PDF or empty |
-| Unsupported file format | Use PDF, DOCX, CSV, TXT, or XLSX |
+| Unsupported file format | Use PDF, DOCX, CSV, or TXT |
 | File too large | Raise `MAX_FILE_SIZE_MB` or use a smaller file |
 | Embedding download is slow | First `local` run fetches the Hugging Face model; keep network available once |
 | OpenAI embedding errors | Check `OPENAI_API_KEY` or switch to `EMBEDDING_PROVIDER=local` |
@@ -236,3 +239,4 @@ sample_data/              # Demo documents
 - No OCR for scanned PDFs.
 - Processing runs in the upload request (no background worker).
 - No LLM answers, risk agents, dashboards, or health scoring.
+
